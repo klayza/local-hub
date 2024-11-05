@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <O_O>
+    </title>
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <link rel="manifest" href="/images/site.webmanifest" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="style.css" rel="stylesheet">
+    <!-- <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+    </style> -->
+</head>
+
+<body>
+    <main class="min-h-screen">
+        <div class="header">
+            <h1 class="italic font-light"></h1>
+            <div class="percent-completed-items">
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>
+        <h2 class="section-title italic">Local Apps</h2>
+        <div class="grid-container" id="apps-grid"></div>
+        <div class="divider"></div>
+        <h2 class="section-title italic">Bookmarks</h2>
+        <div class="grid-container" id="sites-grid"></div>
+        <div class="divider"></div>
+        <iframe src="/player.html" id="myIframe" class="w-full"></iframe>
+        <script>
+            function resizeIframe() {
+                const iframe = document.getElementById('myIframe');
+                iframe.style.height = `${window.innerHeight}px`;
+            }
+
+            // Adjust on load and resize
+            window.addEventListener('load', resizeIframe);
+            window.addEventListener('resize', resizeIframe);
+        </script>
+    </main>
+    <script>
+        const apps = [
+            {
+                name: "Calibre",
+                localPort: 8000,
+                publicUrl: "https://calibre-ebook.com"
+            },
+            {
+                name: "Immich",
+                localPort: 2283,
+                publicUrl: "https://immich.app"
+            },
+            {
+                name: "qBittorrent",
+                localPort: 8080,
+                publicUrl: "https://www.qbittorrent.org"
+            }
+        ];
+
+        const sites = [
+            {
+                name: "Z-Library",
+                url: "https://singlelogin.re/",
+            },
+            {
+                name: "The Coding Train",
+                url: "https://thecodingtrain.com/",
+            },
+            {
+                name: "Hacker News",
+                url: "https://news.ycombinator.com/",
+            },
+            {
+                name: "Excalidraw",
+                url: "https://excalidraw.com/",
+            },
+            {
+                name: "Claycode",
+                url: "https://claycode.net/",
+            },
+            {
+                name: "Github",
+                url: "https://github.com/",
+            },
+        ];
+
+        const IP = '192.168.0.165';
+
+        function updateHeader() {
+            let bedTime = 23;
+            let dayStart = 5;
+            const elements = document.querySelectorAll(".percent-completed-items > div");
+            if (elements.length >= 3) {
+                let now = new Date();
+                let options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                let longDate = now.toLocaleDateString('en-US', options);
+                let endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, dayStart);
+                let endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                let endOfYear = new Date(now.getFullYear() + 1, 0, 1);
+                let startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), dayStart);
+                let totalDayMinutes = (bedTime - dayStart) * 60;
+                let currentDayMinutes = (now.getHours() * 60 + now.getMinutes()) - (dayStart * 60);
+                currentDayMinutes = currentDayMinutes < 0 ? 0 : currentDayMinutes;
+                let percentDayDone = (currentDayMinutes / totalDayMinutes) * 100;
+                let daysInMonth = (endOfMonth - new Date(now.getFullYear(), now.getMonth(), 1)) / (1000 * 60 * 60 * 24);
+                let percentMonthDone = ((now.getDate() - 1 + now.getHours() / 24) / daysInMonth) * 100;
+                let daysInYear = (endOfYear - new Date(now.getFullYear(), 0, 1)) / (1000 * 60 * 60 * 24);
+                let percentYearDone = ((now - new Date(now.getFullYear(), 0, 1)) / (daysInYear * 24 * 60 * 60 * 1000)) * 100;
+                elements[0].textContent = percentDayDone.toFixed(2) + "% day done";
+                elements[1].textContent = percentMonthDone.toFixed(2) + "% of month done";
+                elements[2].textContent = percentYearDone.toFixed(2) + "% of year done";
+                document.querySelector(".header h1").textContent = longDate;
+            }
+        }
+
+        function createAppCard(app) {
+            const localUrl = `http://${IP}:${app.localPort}`;
+            const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(app.publicUrl)}&sz=64`;
+
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const link = document.createElement('a');
+            link.href = localUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.className = 'icon-box';
+
+            const icon = document.createElement('img');
+            icon.src = googleFaviconUrl;
+            icon.alt = `${app.name} icon`;
+
+            const name = document.createElement('div');
+            name.className = 'name';
+            name.textContent = app.name;
+
+            link.appendChild(icon);
+            card.appendChild(link);
+            card.appendChild(name);
+
+            return card;
+        }
+
+        function createSiteCard(site) {
+            const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(site.url)}&sz=64`;
+
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const link = document.createElement('a');
+            link.href = site.url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.className = 'icon-box';
+
+            const icon = document.createElement('img');
+            icon.src = googleFaviconUrl;
+            icon.alt = `${site.name} icon`;
+
+            const name = document.createElement('div');
+            name.className = 'name';
+            name.textContent = site.name;
+
+            link.appendChild(icon);
+            card.appendChild(link);
+            card.appendChild(name);
+
+            return card;
+        }
+
+        // Initialize grids
+        const appsContainer = document.querySelector('#apps-grid');
+        const sitesContainer = document.querySelector('#sites-grid');
+
+        apps.forEach(app => {
+            appsContainer.appendChild(createAppCard(app));
+        });
+
+        sites.forEach(site => {
+            sitesContainer.appendChild(createSiteCard(site));
+        });
+
+        // Initialize and update header
+        updateHeader();
+        setInterval(updateHeader, 1000);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link href="style.css" rel="stylesheet">
+</head>
+
+<body class="bg-black min-h-screen flex items-center justify-center p-4" >
+    <div class="w-full max-w-6xl">
+        <div class="grid grid-cols-2 auto-rows-min gap-4" style="grid-auto-rows: min-content;">
+            <!-- Player Section -->
+            <div class="bg-black border shadow-2xl overflow-hidden col-span-2 w-fit grid-rows-1 ">
+                <div class="flex flex-col md:flex-row p-6 gap-6">
+                    <div class="w-full md:w-64 flex-shrink-0">
+                        <img id="albumArt" alt="Album Cover" class="w-full rounded-lg shadow-lg">
+                    </div>
+                    <div class="flex flex-col justify-between flex-grow">
+                        <div>
+                            <h1 id="trackTitle" class="text-white text-2xl font-bold truncate italic">Loading...</h1>
+                            <p id="artistName" class="text-gray-400 text-lg mt-2 italic">...</p>
+                            <p id="albumName" class="text-gray-500 mt-1 italic">...</p>
+                        </div>
+                        <div class="flex items-center gap-4 mt-4">
+                            <span id="viewCount" class="text-gray-400 text-sm italic">...</span>
+                            <span id="uploadDate" class="text-gray-400 text-sm italic">...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4">
+                    <div class="relative">
+                        <div class="h-1 rounded-full cursor-pointer" id="progressBarContainer">
+                            <div id="progressBar" class="h-1 rounded-full w-0"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400 mt-2">
+                            <span id="currentTime" class="italic">0:00</span>
+                            <span id="totalTime" class="italic">0:00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 pb-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center justify-center gap-6 mx-auto">
+                            <button id="shuffleBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="shuffle" class="w-5 h-5"></i>
+                            </button>
+                            <button id="previousBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="skip-back" class="w-6 h-6"></i>
+                            </button>
+                            <button id="playPauseBtn" class="p-3 rounded-full text-white">
+                                <i data-lucide="play" class="w-8 h-8"></i>
+                            </button>
+                            <button id="nextBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="skip-forward" class="w-6 h-6"></i>
+                            </button>
+                            <button id="repeatBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="repeat" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="muteBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="volume-2" class="w-5 h-5"></i>
+                            </button>
+                            <div class="w-24 h-1 rounded-full cursor-pointer" id="volumeBarContainer">
+                                <div id="volumeBar" class="h-1 rounded-full"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button id="likeBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="heart" class="w-5 h-5"></i>
+                            </button>
+                            <button id="dislikeBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="thumbs-down" class="w-5 h-5"></i>
+                            </button>
+                            <button id="fullscreenBtn" class="p-2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="maximize-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Queue Section -->
+            <div id="queueContainer" class="queue-container node-container p-4">
+                <h2 class="text-white text-xl font-bold mb-4">Up Next</h2>
+                <div id="queueList" class="space-y-2 scrollbar-hide" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Queue items will be inserted here -->
+                </div>
+            </div>
+            <!-- Speed Dial -->
+            <div id="speedContainer" class="node-container p-4">
+                <h2 class="text-white text-xl font-bold mb-4">Speed Dial</h2>
+                <div id="speedGrid" class="flex flex-wrap gap-2">
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const AUTH = "nuts";
+        const BASE_URL = 'http://localhost:26538';
+        let isPlaying = false;
+        let isMuted = false;
+        let isFullscreen = false;
+        let currentVolume = 100;
+        let lastSongId = null;
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Format views helper
+        function formatViews(views) {
+            if (views >= 1000000) {
+                return `${(views / 1000000).toFixed(1)}M views`;
+            } else if (views >= 1000) {
+                return `${(views / 1000).toFixed(1)}K views`;
+            }
+            return `${views} views`;
+        }
+
+        // Format date helper
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }).format(date);
+        }
+
+        // Format time helper
+        function formatTime(seconds) {
+            if (!seconds) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // API call helper
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': AUTH
+                    }
+                };
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                const response = await fetch(`${BASE_URL}${endpoint}`, options);
+                if (response.status === 204) return null;
+                if (response.ok) return await response.json();
+                throw new Error(`API call failed: ${response.status}`);
+            } catch (error) {
+                console.error('API Error:', error);
+                return null;
+            }
+        }
+
+        // Update queue UI
+        async function updateQueueUI() {
+            const queueInfo = await apiCall('/api/v1/queue-info');
+            const queueList = document.getElementById('queueList');
+            queueList.innerHTML = '';
+
+            if (queueInfo && queueInfo.items) {
+                queueInfo.items.forEach((item, index) => {
+                    const queueItem = document.createElement('div');
+
+                    let song;
+                    if (item.playlistPanelVideoRenderer) {
+                        song = item.playlistPanelVideoRenderer
+                    }
+                    else if (item.playlistPanelVideoWrapperRenderer) {
+                        song = item.playlistPanelVideoWrapperRenderer.primaryRenderer.playlistPanelVideoRenderer
+                    }
+
+                    let title = song.title.runs[0].text
+                    let artist = song.longBylineText.runs[0].text
+                    let isPlaying = song.selected;
+                    let duration = song.lengthText.runs[0].text
+                    let thumbnail = song.thumbnail.thumbnails[song.thumbnail.thumbnails.length - 1].url
+
+                    queueItem.className = `queue-item p-2 rounded flex items-center gap-4 ${isPlaying ? 'active' : ''}`;
+                    queueItem.innerHTML = `
+                        <img src="${thumbnail || '/api/placeholder/48/48'}" alt="" class="w-12 h-12 rounded">
+                        <div class="flex-grow">
+                            <div class="text-white text-sm truncate">${title}</div>
+                            <div class="text-gray-400 text-xs">${artist}</div>
+                        </div>
+                        <div class="text-gray-400 text-xs">${duration}</div>
+                    `;
+                    queueList.appendChild(queueItem);
+                });
+            }
+        }
+
+
+        function updateSpeedDial() {
+            items = [
+                {
+                    title: "State Azure",
+                    img: "https://lh3.googleusercontent.com/ddPgclyKfBK1-C5wLCb7qVHpKZDOW7q17KJHIXh6SMfdDDpPCoCU0i0qQh0EN-_A_VQ6UVU7pmgKI6F4=w544-h544-l90-rj",
+                },
+                {
+                    title: "State Azure goldilocks arone",
+                    img: "https://lh3.googleusercontent.com/lu7lpO9x2L_l7Ah1lCbQFlg2UXIGzUrzz9hHbm4LPpt-D9UT_TTwLRbJEZuCbeFNsi0KLXLlMrLWvcAW=w544-h544-l90-rj",
+                },
+            ]
+            artists = [
+                {
+                    title: "Camellia Kamatek",
+                    img: "https://lh3.googleusercontent.com/Pw9kOGgRU4rjOWXYs9HczMiB3fF0olXpRGxTezgRjFNXuQRCmkAQ3GhzXa5Zhr779moYrPqpfZRsOg=w120-h120-p-l90-rj",
+                    url: "https://music.youtube.com/channel/UCRjVmUQ3CW1kH6vP1VGskWA?si=vc-dKe1zOuZ_wf4O",
+                }
+            ]
+
+            
+
+
+            const grid = document.getElementById('speedGrid');
+
+            items.forEach(item => {
+                const gridItem = document.createElement('div');
+
+                gridItem.className = `speed-item w-36 h-36 bg-center bg-cover p-1 `
+                gridItem.style = `background-image: url(${item.img});`
+                gridItem.innerHTML = `
+                <a href="${item.url}" class="w-full h-full">
+                    <div class="flex flex-col h-full justify-end">
+                        <a href="${item.url}" class="flex items-center justify-between text-left text-red line-clamp-1 truncate text-sm hover-item" style="text-shadow: 1px 1px 2px black;">
+                            <p>${item.title}</p>
+                            <span class="arrow mr-2">&rarr;</span>
+                        </a>
+                    </div>
+                </a>
+                `;
+
+                grid.appendChild(gridItem);
+            })
+        }
+
+        let currentTime = 0;
+        let totalDuration = 0;
+        let timeUpdateInterval = null;
+
+        // Replace the updateSongInfo function
+        async function updateSongInfo() {
+            const info = await apiCall('/api/v1/song-info');
+            console.log(info)
+
+            if (!info) return;
+
+
+
+            // Check if song has changed
+            if (lastSongId !== info.videoId) {
+                document.getElementById('trackTitle').textContent = info.title;
+                document.getElementById('artistName').textContent = info.artist;
+                document.getElementById('albumName').textContent = info.album || 'Single';
+                document.getElementById('viewCount').textContent = formatViews(info.views);
+                document.getElementById('uploadDate').textContent = formatDate(info.uploadDate);
+
+                if (info.imageSrc) {
+                    document.getElementById('albumArt').src = info.imageSrc;
+                }
+
+                // Reset timer when song changes
+                currentTime = info.elapsedSeconds;
+                totalDuration = info.songDuration;
+
+                // Clear existing interval
+                if (timeUpdateInterval) {
+                    clearInterval(timeUpdateInterval);
+                }
+
+                // Start new timer if playing
+                if (!info.isPaused) {
+                    timeUpdateInterval = setInterval(updateProgress, 1000);
+                }
+
+                lastSongId = info.videoId;
+                updateQueueUI();
+            }
+
+
+            // Update play/pause button and handle timer
+            const playPauseIcon = document.querySelector('#playPauseBtn svg');
+            if (playPauseIcon) {
+                playPauseIcon.setAttribute('data-lucide', info.isPaused ? 'play' : 'pause');
+                lucide.createIcons();
+
+                // Handle timer based on play state
+                if (info.isPaused && timeUpdateInterval) {
+                    clearInterval(timeUpdateInterval);
+                    timeUpdateInterval = null;
+                } else if (!info.isPaused && !timeUpdateInterval) {
+                    timeUpdateInterval = setInterval(updateProgress, 1000);
+                }
+
+                isPlaying = !info.isPaused;
+            }
+
+            // Update mute button state
+            const volumeIcon = document.querySelector('#muteBtn svg');
+            if (volumeIcon) {
+                volumeIcon.setAttribute('data-lucide', info.isMuted ? 'volume-x' : 'volume-2');
+                lucide.createIcons();
+                isMuted = info.isMuted;
+            }
+        }
+
+
+        // Add this new function to handle progress updates
+        function updateProgress() {
+            if (currentTime < totalDuration) {
+                currentTime++;
+                const progress = (currentTime / totalDuration) * 100;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+                document.getElementById('currentTime').textContent = formatTime(currentTime);
+                document.getElementById('totalTime').textContent = formatTime(totalDuration);
+            } else {
+                // Stop the interval if we reach the end
+                clearInterval(timeUpdateInterval);
+                timeUpdateInterval = null;
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('playPauseBtn').addEventListener('click', async () => {
+            await apiCall(`/api/v1/${isPlaying ? 'pause' : 'play'}`, 'POST');
+            isPlaying = !isPlaying;
+
+            // Handle timer
+            if (isPlaying) {
+                timeUpdateInterval = setInterval(updateProgress, 1000);
+            } else if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+                timeUpdateInterval = null;
+            }
+
+            updateSongInfo();
+        });
+
+
+        document.getElementById('previousBtn').addEventListener('click', async () => {
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+                timeUpdateInterval = null;
+            }
+            await apiCall('/api/v1/previous', 'POST');
+            updateSongInfo();
+        });
+
+
+        document.getElementById('nextBtn').addEventListener('click', async () => {
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+                timeUpdateInterval = null;
+            }
+            await apiCall('/api/v1/next', 'POST');
+            updateSongInfo();
+        });
+
+
+        document.getElementById('shuffleBtn').addEventListener('click', async () => {
+            await apiCall('/api/v1/shuffle', 'POST');
+            updateQueueUI();
+        });
+
+        document.getElementById('repeatBtn').addEventListener('click', async () => {
+            await apiCall('/api/v1/switch-repeat', 'POST', { iteration: 1 });
+        });
+
+        document.getElementById('likeBtn').addEventListener('click', async () => {
+            await apiCall('/api/v1/like', 'POST');
+            const likeBtn = document.getElementById('likeBtn');
+            likeBtn.classList.toggle('liked');
+        });
+
+        document.getElementById('dislikeBtn').addEventListener('click', async () => {
+            await apiCall('/api/v1/dislike', 'POST');
+            const dislikeBtn = document.getElementById('dislikeBtn');
+            dislikeBtn.classList.toggle('liked');
+        });
+
+        document.getElementById('muteBtn').addEventListener('click', async () => {
+            await apiCall('/api/v1/toggle-mute', 'POST');
+            isMuted = !isMuted;
+            const volumeIcon = document.querySelector('#muteBtn svg');
+            volumeIcon.setAttribute('data-lucide', isMuted ? 'volume-x' : 'volume-2');
+            lucide.createIcons();
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', async () => {
+            const newState = !isFullscreen;
+            await apiCall('/api/v1/fullscreen', 'POST', { state: newState });
+            isFullscreen = newState;
+            const fullscreenIcon = document.querySelector('#fullscreenBtn svg');
+            fullscreenIcon.setAttribute('data-lucide', isFullscreen ? 'minimize-2' : 'maximize-2');
+            lucide.createIcons();
+        });
+
+        const progressContainer = document.getElementById('progressBarContainer');
+        progressContainer.addEventListener('click', async (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percent = x / rect.width;
+            const seconds = Math.floor(totalDuration * percent);
+            await apiCall('/api/v1/go-forward', 'POST', { seconds: seconds - currentTime });
+            currentTime = seconds; // Update our tracked time
+            updateProgress(); // Update UI immediately
+        });
+
+        // Volume control interaction
+        const volumeContainer = document.getElementById('volumeBarContainer');
+        const volumeBar = document.getElementById('volumeBar');
+
+        volumeContainer.addEventListener('click', async (e) => {
+            const rect = volumeContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const volume = Math.floor((x / rect.width) * 100);
+            await apiCall('/api/v1/volume', 'POST', { volume });
+            volumeBar.style.width = `${volume}%`;
+            currentVolume = volume;
+
+            // Update mute icon if volume is changed while muted
+            if (isMuted && volume > 0) {
+                isMuted = false;
+                const volumeIcon = document.querySelector('#muteBtn svg');
+                volumeIcon.setAttribute('data-lucide', 'volume-2');
+                lucide.createIcons();
+            }
+        });
+
+        // Handle volume drag
+        let isDraggingVolume = false;
+
+        volumeContainer.addEventListener('mousedown', () => {
+            isDraggingVolume = true;
+        });
+
+        document.addEventListener('mousemove', async (e) => {
+            if (!isDraggingVolume) return;
+
+            const rect = volumeContainer.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            x = Math.max(0, Math.min(x, rect.width));
+
+            const volume = Math.floor((x / rect.width) * 100);
+            volumeBar.style.width = `${volume}%`;
+
+            await apiCall('/api/v1/volume', 'POST', { volume });
+            currentVolume = volume;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDraggingVolume = false;
+        });
+
+        async function initialize() {
+            // Initial volume state
+            volumeBar.style.width = `${currentVolume}%`;
+
+            // Initial song info
+            await updateSongInfo();
+            await updateQueueUI();
+            updateSpeedDial();
+
+            // Poll queue less frequently
+            setInterval(async () => {
+                await updateQueueUI();
+            }, 5000);
+        }
+
+        // Start the player
+        initialize();
+    </script>
+</body>
+
+</html>

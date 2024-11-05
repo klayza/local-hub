@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+:root {
+    --accent: red;
+}
+
+
+* {
+    border-color: #666;
+}
+
+body {
+    font-family: 'Space Mono', monospace;
+    background: #000;
+    color: #fff;
+}
+
+.header {
+    border-bottom: 1px solid #333;
+    padding: clamp(1rem, 3vw, 2rem);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header h1 {
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    margin-bottom: 1rem;
+}
+
+.percent-completed-items {
+    display: flex;
+    justify-content: space-between;
+    font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+    color: #888;
+    margin-top: 0.5rem;
+}
+
+.section-title {
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    color: #666;
+    margin-bottom: 1rem;
+    padding: 0 clamp(1rem, 3vw, 2rem);
+    max-width: 1200px;
+    margin: 2rem auto 1rem;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: clamp(0.5rem, 3vw, 2rem);
+    padding: clamp(1rem, 3vw, 2rem);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.icon-box {
+    aspect-ratio: 1;
+    width: clamp(80px, 20vw, 160px);
+    border: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease;
+}
+
+.icon-box:hover {
+    border-color: #666;
+}
+
+.icon-box img {
+    width: clamp(32px, 10vw, 64px);
+    height: clamp(32px, 10vw, 64px);
+}
+
+.name {
+    font-style: italic;
+    color: #cacaca;
+    font-size: clamp(0.8rem, 2vw, 1rem);
+    text-align: center;
+}
+
+.divider {
+    height: 1px;
+    background: #333;
+    margin: 2rem auto;
+    max-width: 1200px;
+}
+
+
+
+
+/* Player */
+#progressBarContainer {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#progressBar {
+    background-color: var(--accent);
+    transition: width 0.1s linear;
+}
+
+#volumeBarContainer {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#volumeBar {
+    background-color: var(--accent);
+    transition: width 0.1s linear;
+}
+
+#playPauseBtn {
+    background-color: var(--accent);
+    transition: opacity 0.2s ease;
+}
+
+#playPauseBtn:hover {
+    opacity: 0.8;
+}
+
+.liked {
+    color: var(--accent) !important;
+}
+
+.node-container {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* .node-container:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+} */
+
+.queue-item {
+    transition: background-color 0.2s ease;
+}
+
+.queue-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.queue-item.active {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-bottom: 2px solid var(--accent);
+}
+
+
+.speed-item:hover {
+    outline: 4px solid rgb(255, 255, 255);
+}
+
+.hover-item {
+    text-decoration: none;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.hover-item .arrow {
+    display: inline-block;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    font-size: 1.2em;
+    margin-left: 5px;
+}
+
+.hover-item:hover .arrow {
+    opacity: 1;
+    transform: translateX(0); /* Slide in the arrow */
+}
+
+
+
+
+
+ /* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+} 

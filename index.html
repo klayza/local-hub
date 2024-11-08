@@ -60,6 +60,12 @@
                 publicUrl: "https://immich.app"
             },
             {
+                name: "Plex",
+                localPort: 32400,
+                publicUrl: "https://plex.tv",
+                override: "https://app.plex.tv",
+            },
+            {
                 name: "qBittorrent",
                 localPort: 8080,
                 publicUrl: "https://www.qbittorrent.org"
@@ -123,7 +129,7 @@
         }
 
         function createAppCard(app) {
-            const localUrl = `http://${IP}:${app.localPort}`;
+            const localUrl = app.override ? app.override : `http://${IP}:${app.localPort}`;
             const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(app.publicUrl)}&sz=64`;
 
             const card = document.createElement('div');
